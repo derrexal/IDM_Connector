@@ -30,6 +30,9 @@ public class APISourceData: ISourceData, IDisposable
     /// <param name="password"></param>
     /// <param name="archivePath"></param>
     /// <returns></returns>
+    //
+    // Почему бы не поупражняться с SecurityPassword? :)
+    // Если так уж прям завязано на endUrl - сделай его enum
     public IEnumerable<object> GetData(string login, string password, string endUrl)
     {
         var authenticationHeaderValue = new AuthenticationHeaderValue("basic", GetAuthenticationString(login, password));
@@ -38,10 +41,13 @@ public class APISourceData: ISourceData, IDisposable
             var request = new HttpRequestMessage(HttpMethod.Get, _httpClient.BaseAddress!.ToString() + endUrl);
             request.Headers.Authorization = authenticationHeaderValue;
 
+            // Обычно всегда пишут через Async
             using var response = _httpClient.Send(request);
             response.EnsureSuccessStatusCode();
 
             IEnumerable<object>? entities = null;
+            // Почему не await?
+            // Почему не switch?
             if (endUrl == Settings.UNIT_END_URL)
                 entities = response.Content.ReadFromJsonAsync<IEnumerable<Unit>>().Result;
             else if (endUrl == Settings.POSITION_END_URL)
@@ -54,6 +60,7 @@ public class APISourceData: ISourceData, IDisposable
 
             return entities;
         }
+        // Это вообще не понятно зачем.
         catch { throw; }
     }
 

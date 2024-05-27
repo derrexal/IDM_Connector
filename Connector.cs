@@ -18,15 +18,21 @@ public class Connector: IConnector
     private IEnumerable<Position> _positions;
     private IEnumerable<Unit> _units;
 
+    // Это кошмар, а не конструктор... При такой реализации и DI не прикрутишь.
     public Connector(HttpClient httpClient, ILogger logger, 
         ISourceData sourceData, IArchiver archiver, IValidator validator,
         string baseUrl,string login, string password, string archivePath)
     {
+        // Зачем ты просишь передавать тебе httpClient? Тем более, что изменяешь его
         _httpClient = httpClient;
         _httpClient.BaseAddress = new Uri(baseUrl);
         _logger = logger;
 
+        // мб из конструктора вынести в поле?
         string[] endUrls = [Settings.UNIT_END_URL, Settings.POSITION_END_URL, Settings.EMPLOYEE_END_URL];
+        
+        // Очень плохая практика выносить логику, тем более такую сложную и потенциально долгую в конструктор.
+        // Он точно не для этого.
         try
         {
             foreach (string endUrl in endUrls)
@@ -40,11 +46,13 @@ public class Connector: IConnector
             //Сохранение данных в архив
             archiver.SaveForArchive(archivePath, _employees, _positions, _units);
         }
+        // И снова не понятно зачем это
         catch { throw; }
     }
 
     #endregion
 
+    // То есть ты при создании экземпляра уже всё запросил и держишь httpClient открытым всё это время... Зачем?
     public void Dispose()
     {
         _httpClient.Dispose();
@@ -63,6 +71,7 @@ public class Connector: IConnector
                 throw new InvalidDataException($"Нет информации о сотрудниках");
             return _employees.Where(e=>e.UnitId == unitId);
         }
+        // Ой всё...
         catch { throw; }
     }
 
