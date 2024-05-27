@@ -18,6 +18,7 @@ public class ArchiverData: IArchiver
         try
         {
             if (units is null || positions is null || employees is null)
+                // А каких именно? почему бы не помочь с отладкой?
                 throw new ArgumentNullException($"В процессе сохранения данных в архив произошла ошибка. Необходимых данных для сохранения нет");
 
             // Сериализуем данные для дальнейшего сохранения в файл
@@ -34,11 +35,14 @@ public class ArchiverData: IArchiver
                     AddEntry("units.json", unitsJson, zip);
                 }
 
+                // А точно в любой ОС "TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time")" найдёт такую штуку? 
                 // описываем формат времени который будет содержаться в названии архива
                 var timeZoneMoscow = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
                 var todayDateTimeMoscow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneMoscow).ToString("o", CultureInfo.InvariantCulture);
                 
+                // Проверка на существование такого файла?
                 string pathToSaveArchive = $"{path}data_{todayDateTimeMoscow}.zip";
+                // Почему не async?
                 File.WriteAllBytes(pathToSaveArchive, zipStream.ToArray());
 
                 return Task.CompletedTask;
@@ -61,9 +65,11 @@ public class ArchiverData: IArchiver
         {
             var employeesEntry = archive.CreateEntry(fileName);
             using (StreamWriter sw = new StreamWriter(employeesEntry.Open()))
+                // Зачем-то это Task, но async-await не используем...
                 sw.Write(fileContent);
             return Task.CompletedTask;
         }
+        // Ну ты понял.
         catch { throw; }
     }
 }
