@@ -1,0 +1,50 @@
+﻿[
+  {
+    "id": 123123,
+    "personnelNumber": 123456,
+    "lastName": "Федоров",
+    "firstName": "Иван",
+    "patronymic": "Петрович",
+    "dateFrom": "21.01.2024",
+    "dismissedAt": "23.02.2024",
+    "isMain": "",
+    "positionId": "1",
+    "unitId": "2"
+  },
+  {
+    "id": 223223,
+    "personnelNumber": 223456,
+    "lastName": "Иванова",
+    "firstName": "Людмила",
+    "patronymic": "Сергеевна",
+    "dateFrom": "21.12.2023",
+    "dismissedAt": "",
+    "isMain": 0,
+    "positionId": "2",
+    "unitId": "2"
+  },
+  {
+    "id": 333333,
+    "personnelNumber": 333456,
+    "lastName": "Петрова",
+    "firstName": "Нина",
+    "patronymic": "Игоревна",
+    "dateFrom": "21.02.2023",
+    "dismissedAt": "22.03.2024",
+    "isMain": 1,
+    "positionId": "2",
+    "unitId": "3"
+  },
+  {
+    "id": 444444,
+    "personnelNumber": 444456,
+    "lastName": "Сидоров",
+    "firstName": "Андрей",
+    "patronymic": "Егорович",
+    "dateFrom": "",
+    "dismissedAt": "",
+    "isMain": "",
+    "positionId": "2",
+    "unitId": "2"
+  }
+]
