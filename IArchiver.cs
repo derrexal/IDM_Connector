@@ -7,5 +7,5 @@ namespace IDM_Connector;
 /// </summary>
 public interface IArchiver
 {
-    Task SaveForArchive(string path, IEnumerable<Employee>? employees, IEnumerable<Position>? positions, IEnumerable<Unit>? units);
+    void SaveForArchive(string path, IEnumerable<Employee>? employees, IEnumerable<Position>? positions, IEnumerable<Unit>? units);
 }

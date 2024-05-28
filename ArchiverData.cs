@@ -13,7 +13,7 @@ public class ArchiverData: IArchiver
     /// </summary>
     /// <param name="path">Путь по которому будет сохранен архив</param>
     /// <returns></returns>
-    public Task SaveForArchive(string path, IEnumerable<Employee>? employees, IEnumerable<Position>? positions, IEnumerable<Unit>? units)
+    public void SaveForArchive(string path, IEnumerable<Employee>? employees, IEnumerable<Position>? positions, IEnumerable<Unit>? units)
     {
         // Если получили пустые коллекции для сохранения в архив
         if (units is null)
@@ -43,8 +43,6 @@ public class ArchiverData: IArchiver
             //TODO: сделать защиту от дурака: проверить существование архиваа и если он есть изменить название (Согласовать новое название)
             string pathToSaveArchive = $"{path}data_{todayDateTimeMoscow}.zip";
             File.WriteAllBytes(pathToSaveArchive, zipStream.ToArray());
-
-            return Task.CompletedTask;
         }
     }
 
@@ -55,11 +53,10 @@ public class ArchiverData: IArchiver
     /// <param name="fileName">Имя файла формата .json</param> 
     /// <param name="fileContent">Содержимое файла</param>
     /// <param name="archive">Архив в который будут сохранены файлы</param>
-    private Task AddEntry(string fileName, string fileContent, ZipArchive archive)
+    private void AddEntry(string fileName, string fileContent, ZipArchive archive)
     {
         var employeesEntry = archive.CreateEntry(fileName);
         using (StreamWriter sw = new StreamWriter(employeesEntry.Open()))
             sw.Write(fileContent);
-        return Task.CompletedTask;
     }
 }

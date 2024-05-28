@@ -1,5 +1,8 @@
 ﻿namespace IDM_Connector.Shared
 {
+    /// <summary>
+    /// Класс предпологает хранение настроек необходимых для использования библиотеки. 
+    /// </summary>
     public class Settings
     {
         public string BaseUrl { get; set; }
