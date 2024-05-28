@@ -7,88 +7,88 @@ namespace IDM_Connector;
 /// Описывает валидацию ответа полученного из источника
 /// </summary>
 
-public class Validator
+public class Validator: IValidator
 {
     private readonly ILogger _logger;
 
-    public Validator(ILogger logger)
+    public Validator(ILogger<Validator> logger)
     {
         _logger = logger;
     }
 
-    /// <summary>
-    /// Описываются правила валидации для объектов 3 типов (Employee, Position, Unit)
-    /// </summary>
-    /// <param name="values"></param>
-    /// <returns></returns>
-    public Task ValidateData(IEnumerable<object> values, ref IEnumerable<Unit>? units, ref IEnumerable<Position>? positions, ref IEnumerable<Employee>? employees)
+    //TODO:вынести на 2 метода (валидация и сохранение в память)
+    public void ValidateEmployeesData(IEnumerable<Employee> employees, IEnumerable<Unit> units)
     {
-        try
+        var newEmployees = employees.ToList();
+        // Правила валидации Employee's
+        foreach (var employee in employees)
         {
-            // Правила валидации Employee's
-            if (values.GetType() == typeof(IEnumerable<Employee>))
+            // если у сотрудника указано несуществующее подразделение 
+            if (units.Any(s => s.Id == employee.UnitId))
             {
-                var baseEmployees = (IEnumerable<Employee>)values;
-                foreach (var employee in baseEmployees)
-                {
-                    // если у сотрудника указано несуществующее подразделение 
-                    if (units.Select(u => u.Id).Contains(employee.UnitId))
-                    {
-                        string errorMessage = $"У сотрудника ID:{employee.Id} указано несуществующее подразделение ID:{employee.UnitId}";
-                        _logger.LogError(errorMessage);
-                        throw new Exception(errorMessage);
-                    }
-
-                    // если у сотрудника отсутствует дата приема на работу
-                    if (employee.StartDate == null)
-                    {
-                        _logger.LogWarning($"У сотрудника ID:{employee.Id} отсутствует дата приема на работу(StartDate)");
-                        continue;
-                    }
-                    //Валидация Employee's успешна
-                    employees.ToList().Add(employee);
-                }
-            }
-            // Правила валидации Unit's
-            else if (values.GetType() == typeof(IEnumerable<Unit>))
-            {
-                var baseUnits = (IEnumerable<Unit>)values;
-                var unitIds = units.Select(u => u.Id).ToList();
-
-                foreach (var unit in baseUnits)
-                {
-                    if (unit.ParentId != null)
-                        // Если нарушена иерархия подразделений, т.е. отсутствует какое-либо родительское подразделение
-                        if (!unitIds.Contains((long)unit.ParentId!))
-                        {
-                            string errorMessage = $"Нарушена иерархия подразделений. У подразделения ID:{unit.Id} указан несуществующий ParentId:{unit.ParentId}";
-                            _logger.LogError(errorMessage);
-                            throw new InvalidDataException(errorMessage);
-                        }
-                }
-                //Валидация Unit's успешна
-                units = baseUnits;
+                string errorMessage = $"У сотрудника ID:{employee.Id} указано несуществующее подразделение ID:{employee.UnitId}";
+                _logger.LogError(errorMessage);
+                throw new Exception(errorMessage);
             }
 
-            // У сущности Position не заданы правила валидации - просто записываем в память
-            else if (values.GetType() == typeof(IEnumerable<Position>))
+            // если у сотрудника отсутствует дата приема на работу
+            if (employee.StartDate == null)
             {
-                var baseUnits = (IEnumerable<Position>)values;
-                positions = baseUnits;
+                _logger.LogWarning($"У сотрудника ID:{employee.Id} отсутствует дата приема на работу(StartDate)");
+                continue;
             }
-
-            else
-                throw new ArgumentException($"Неожидаемые входные данные: {values.GetType()}");
-
-            return Task.CompletedTask;
+            //Валидация Employee's успешна
+            newEmployees.Add(employee);
         }
-        catch
+        employees = newEmployees;
+    }
+
+    public void ValidatePositionsData(IEnumerable<Position>? positions)
+    {
+        
+    }
+
+    public void ValidateUnitsData(IEnumerable<Unit> units)
+    {
+        // Правила валидации Unit's
+        foreach (var unit in units)
         {
-            // В случае ошибки - обнуляем все коллекции
-            employees = Enumerable.Empty<Employee>();
-            units = Enumerable.Empty<Unit>();
-            positions = Enumerable.Empty<Position>();
-            throw;
+            // Если нарушена иерархия подразделений, т.е. отсутствует какое-либо родительское подразделение
+            if (unit.ParentId.HasValue && units.Any(s => s.Id == unit.ParentId.Value))
+            {
+                string errorMessage = $"Нарушена иерархия подразделений. У подразделения ID:{unit.Id} указан несуществующий ParentId:{unit.ParentId}";
+                _logger.LogError(errorMessage);
+                throw new InvalidDataException(errorMessage);
+            }
         }
+    }
+
+    public void Validate<T>(IEnumerable<T> entities, IEnumerable<Unit>? units=null) where T: Entity
+    {
+        var baseEmployees = entities as IEnumerable<Employee>;
+        if (baseEmployees is not null)
+        {
+            if (units is null)
+                throw new ArgumentNullException($"Необходимо передать параметр {nameof(units)}");                    
+            ValidateEmployeesData(baseEmployees, units);
+            return;
+            
+        }
+            
+        var baseUnits = entities as IEnumerable<Unit>;
+        if (baseUnits is not null)
+        {
+            ValidateUnitsData(baseUnits);
+            return;
+        }
+
+        var basePositions = entities as IEnumerable<Position>;
+        if (basePositions is not null)
+        {
+            ValidatePositionsData(basePositions);
+            return;
+        }
+
+        throw new InvalidDataException("Ошибка валидации. Функция валидации пройдена до конца и не вернула результат");
     }
 }

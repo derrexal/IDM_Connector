@@ -15,37 +15,37 @@ public class ArchiverData: IArchiver
     /// <returns></returns>
     public Task SaveForArchive(string path, IEnumerable<Employee>? employees, IEnumerable<Position>? positions, IEnumerable<Unit>? units)
     {
-        try
+        // Если получили пустые коллекции для сохранения в архив
+        if (units is null)
+            throw new ArgumentNullException($"В процессе сохранения данных в архив произошла ошибка. Необходимых данных для сохранения нет: {nameof(units)}");
+        if (positions is null)
+            throw new ArgumentNullException($"В процессе сохранения данных в архив произошла ошибка. Необходимых данных для сохранения нет: {nameof(positions)}");
+        if (employees is null)
+            throw new ArgumentNullException($"В процессе сохранения данных в архив произошла ошибка. Необходимых данных для сохранения нет: {nameof(employees)}");
+
+        // Сериализуем данные для дальнейшего сохранения в файл
+        var unitsJson = JsonSerializer.Serialize(units);
+        var positionsJson = JsonSerializer.Serialize(positions);
+        var employeesJson = JsonSerializer.Serialize(employees);
+
+        using (var zipStream = new MemoryStream())
         {
-            if (units is null || positions is null || employees is null)
-                throw new ArgumentNullException($"В процессе сохранения данных в архив произошла ошибка. Необходимых данных для сохранения нет");
-
-            // Сериализуем данные для дальнейшего сохранения в файл
-            var unitsJson = JsonSerializer.Serialize(units);
-            var positionsJson = JsonSerializer.Serialize(positions);
-            var employeesJson = JsonSerializer.Serialize(employees);
-
-            using (var zipStream = new MemoryStream())
+            using (ZipArchive zip = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
             {
-                using (ZipArchive zip = new ZipArchive(zipStream, ZipArchiveMode.Create, true))
-                {
-                    AddEntry("employees.json", employeesJson, zip);
-                    AddEntry("positions.json", positionsJson, zip);
-                    AddEntry("units.json", unitsJson, zip);
-                }
-
-                // описываем формат времени который будет содержаться в названии архива
-                var timeZoneMoscow = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
-                var todayDateTimeMoscow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneMoscow).ToString("o", CultureInfo.InvariantCulture);
-                
-                string pathToSaveArchive = $"{path}data_{todayDateTimeMoscow}.zip";
-                File.WriteAllBytes(pathToSaveArchive, zipStream.ToArray());
-
-                return Task.CompletedTask;
+                AddEntry("employees.json", employeesJson, zip);
+                AddEntry("positions.json", positionsJson, zip);
+                AddEntry("units.json", unitsJson, zip);
             }
-        }
-        catch { throw; }
 
+            // описываем формат времени который будет содержаться в названии архива
+            var timeZoneMoscow = TimeZoneInfo.FindSystemTimeZoneById("Russian Standard Time");
+            var todayDateTimeMoscow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneMoscow).ToString("o", CultureInfo.InvariantCulture);
+            //TODO: сделать защиту от дурака: проверить существование архиваа и если он есть изменить название (Согласовать новое название)
+            string pathToSaveArchive = $"{path}data_{todayDateTimeMoscow}.zip";
+            File.WriteAllBytes(pathToSaveArchive, zipStream.ToArray());
+
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary>
@@ -57,13 +57,9 @@ public class ArchiverData: IArchiver
     /// <param name="archive">Архив в который будут сохранены файлы</param>
     private Task AddEntry(string fileName, string fileContent, ZipArchive archive)
     {
-        try
-        {
-            var employeesEntry = archive.CreateEntry(fileName);
-            using (StreamWriter sw = new StreamWriter(employeesEntry.Open()))
-                sw.Write(fileContent);
-            return Task.CompletedTask;
-        }
-        catch { throw; }
+        var employeesEntry = archive.CreateEntry(fileName);
+        using (StreamWriter sw = new StreamWriter(employeesEntry.Open()))
+            sw.Write(fileContent);
+        return Task.CompletedTask;
     }
 }

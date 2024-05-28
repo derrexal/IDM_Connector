@@ -1,4 +1,5 @@
-﻿//public class Employee
+﻿#region Задание
+//public class Employee
 //{
 //    public long Id { get; set; }
 
@@ -56,3 +57,4 @@
 //    {
 //    }
 //}
+#endregion

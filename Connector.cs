@@ -11,44 +11,56 @@ public class Connector: IConnector
 {
     #region init
 
-    private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
 
     private IEnumerable<Employee> _employees;
     private IEnumerable<Position> _positions;
     private IEnumerable<Unit> _units;
 
-    public Connector(HttpClient httpClient, ILogger logger, 
-        ISourceData sourceData, IArchiver archiver, IValidator validator,
-        string baseUrl,string login, string password, string archivePath)
+    public Connector(ILogger logger, 
+    ISourceData sourceData, IArchiver archiver, IValidator validator, Settings settings)
     {
-        _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri(baseUrl);
         _logger = logger;
 
-        string[] endUrls = [Settings.UNIT_END_URL, Settings.POSITION_END_URL, Settings.EMPLOYEE_END_URL];
         try
         {
-            foreach (string endUrl in endUrls)
-            {
-                //Получение данных
-                var entities = sourceData.GetData(login, password, endUrl);
+            //Получение данных о подразделениях
+            var entitiesUnit = sourceData.GetData<Unit>(settings, Options.UNIT_END_URL);
+            //Валидация данных
+            validator.Validate<Unit>(entitiesUnit);
+            //Сохранение данных в память
+            _units = entitiesUnit;
 
-                //Валидация данных и сохранение в памяти
-                validator.ValidateData(entities, ref _units, ref _positions, ref _employees);
-            }
+            //Получение данных о сотрудниках
+            var entitiesEmployee = sourceData.GetData<Employee>(settings, Options.EMPLOYEE_END_URL);
+            //Валидация данных
+            validator.Validate<Employee>(entitiesEmployee, _units);
+            //Сохранение данных в память
+            _employees = entitiesEmployee;
+
+            //Получаем данные об должностях
+            var entitiesPosition = sourceData.GetData<Position>(settings, Options.POSITION_END_URL);
+            //Валидация данных
+            validator.Validate<Position>(entitiesPosition);
+            //Сохранение данных в память
+            _positions = entitiesPosition;
+
             //Сохранение данных в архив
-            archiver.SaveForArchive(archivePath, _employees, _positions, _units);
+            archiver.SaveForArchive(settings.ArchivePath, _employees, _positions, _units);
         }
-        catch { throw; }
+        catch
+        {
+            //Обнуляем коллекции если получили ошибку
+            _employees = Enumerable.Empty<Employee>();
+            _units = Enumerable.Empty<Unit>();
+            _positions = Enumerable.Empty<Position>();
+            throw;
+        }
     }
 
     #endregion
 
-    public void Dispose()
-    {
-        _httpClient.Dispose();
-    }
+    public void Dispose(){}
 
     /// <summary>
     /// Получение сотрудников по Id подразделения
@@ -57,13 +69,9 @@ public class Connector: IConnector
     /// <returns></returns>
     public IEnumerable<Employee> GetEmployeesByUnit(long unitId)
     {
-        try
-        {
-            if(_employees is null)
-                throw new InvalidDataException($"Нет информации о сотрудниках");
-            return _employees.Where(e=>e.UnitId == unitId);
-        }
-        catch { throw; }
+        if(_employees.Any())
+            throw new InvalidDataException($"Нет информации о сотрудниках");
+        return _employees.Where(e=>e.UnitId == unitId);
     }
 
     /// <summary>
@@ -72,13 +80,9 @@ public class Connector: IConnector
     /// <returns></returns>
     public IEnumerable<Position> GetPositions()
     {
-        try
-        {
-            if (_positions is null)
-                throw new InvalidDataException($"Нет информации о должностях сотрудников");
-            return _positions.ToList();
-        }
-        catch { throw; }
+        if (_positions.Any())
+            throw new InvalidDataException($"Нет информации о должностях сотрудников");
+        return _positions.ToList();
     }
 
     /// <summary>
@@ -88,12 +92,8 @@ public class Connector: IConnector
     /// <returns></returns>
     public IEnumerable<Unit> GetUnitsByParentId(long parentId)
     {
-        try
-        {
-            if (_units is null)
-                throw new InvalidDataException($"Нет информации о подразделениях к которым относятся сотрудники");
-            return _units.Where(e => e.ParentId == parentId);
-        }
-        catch { throw; }
+        if (_units.Any())
+            throw new InvalidDataException($"Нет информации о подразделениях к которым относятся сотрудники");
+        return _units.Where(e => e.ParentId == parentId);
     }
 }

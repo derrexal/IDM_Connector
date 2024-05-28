@@ -11,7 +11,7 @@ namespace IDM_Connector;
 public class APISourceData: ISourceData, IDisposable
 {
     private readonly HttpClient _httpClient;
-
+    
     public APISourceData(HttpClient httpClient)
     {
         _httpClient = httpClient;
@@ -19,7 +19,7 @@ public class APISourceData: ISourceData, IDisposable
 
     public void Dispose()
     {
-        ((IDisposable)_httpClient).Dispose();
+        _httpClient.Dispose();
     }
 
     /// <summary>
@@ -30,31 +30,43 @@ public class APISourceData: ISourceData, IDisposable
     /// <param name="password"></param>
     /// <param name="archivePath"></param>
     /// <returns></returns>
-    public IEnumerable<object> GetData(string login, string password, string endUrl)
+    public IEnumerable<T>? GetData<T>(Settings settings, string endUrl) where T : Entity
     {
-        var authenticationHeaderValue = new AuthenticationHeaderValue("basic", GetAuthenticationString(login, password));
-        try
+        //Проверяем, можем ли работать с этим URL (на случай добавления новой функциональности)
+        CheckEndUrl(endUrl);
+        
+        //Формируем запрос
+        var url = settings.BaseUrl + endUrl;
+        var authenticationHeaderValue = new AuthenticationHeaderValue("basic", GetAuthenticationString(settings.Login, settings.Password));
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        request.Headers.Authorization = authenticationHeaderValue;
+
+        using var response = _httpClient.Send(request);
+        response.EnsureSuccessStatusCode();
+        if(string.IsNullOrEmpty(response.Content.ToString()))
+            throw new Exception($"Не были получены данные по адресу:{url}");
+
+        return response.Content.ReadFromJsonAsync<IEnumerable<T>>().Result;
+    }
+
+    /// <summary>
+    /// Проверка на возможность работы с передаваемым URL
+    /// </summary>
+    /// <param name="endUrl"></param>
+    /// <exception cref="ArgumentException"></exception>
+    private void CheckEndUrl(string endUrl)
+    {
+        switch (endUrl)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, _httpClient.BaseAddress!.ToString() + endUrl);
-            request.Headers.Authorization = authenticationHeaderValue;
-
-            using var response = _httpClient.Send(request);
-            response.EnsureSuccessStatusCode();
-
-            IEnumerable<object>? entities = null;
-            if (endUrl == Settings.UNIT_END_URL)
-                entities = response.Content.ReadFromJsonAsync<IEnumerable<Unit>>().Result;
-            else if (endUrl == Settings.POSITION_END_URL)
-                entities = response.Content.ReadFromJsonAsync<IEnumerable<Position>>().Result;
-            else if (endUrl == Settings.EMPLOYEE_END_URL)
-                entities = response.Content.ReadFromJsonAsync<IEnumerable<Employee>>().Result;
-
-            if (entities is null)
-                throw new Exception($"Не были получены данные по адресу:{_httpClient.BaseAddress!.ToString() + endUrl}");
-
-            return entities;
+            case Options.UNIT_END_URL:
+                break;
+            case Options.POSITION_END_URL:
+                break;
+            case Options.EMPLOYEE_END_URL:
+                break;
+            default:
+                throw new ArgumentException($"Не допустимый формат данных. {nameof(endUrl)}={endUrl}");
         }
-        catch { throw; }
     }
 
     /// <summary>

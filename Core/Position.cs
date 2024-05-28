@@ -1,7 +1,6 @@
 ﻿namespace IDM_Connector.Core;
 
-public class Position
+public class Position: Entity
 {
-    public long Id { get; set; }
     public string FullName { get; set; }
 }

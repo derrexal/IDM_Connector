@@ -1,8 +1,7 @@
 ﻿namespace IDM_Connector.Core;
 
-public class Employee
+public class Employee: Entity
 {
-    public long Id { get; set; }
 
     // Табельный номер
     public string PersonnelNumber { get; set; }

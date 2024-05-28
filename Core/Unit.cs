@@ -1,7 +1,7 @@
 ﻿namespace IDM_Connector.Core;
-public class Unit
+
+public class Unit: Entity
 {
-    public long Id { get; set; }
     public long? ParentId { get; set; }
     public string FullName { get; set; }
 }

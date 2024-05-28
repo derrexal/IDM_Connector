@@ -1,9 +1,12 @@
-﻿namespace IDM_Connector;
+﻿using IDM_Connector.Core;
+using IDM_Connector.Shared;
+
+namespace IDM_Connector;
 
 /// <summary>
 /// Интерфейс описывающий источник данных
 /// </summary>
 public interface ISourceData
 {
-    public IEnumerable<object> GetData(string login, string password, string endUrl);
+    IEnumerable<T> GetData<T>(Settings settings, string endUrl) where T : Entity;
 }
